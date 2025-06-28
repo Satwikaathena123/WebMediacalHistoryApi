@@ -4,7 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace WebMediacalHistoryApi.Logic
+namespace HospitalAPI.Logic
 {
     public class TokenGeneration
     {
@@ -14,18 +14,18 @@ namespace WebMediacalHistoryApi.Logic
             _configuration = configuration;
         }
 
-        public string GenerateJWT(string username, string role)
+        public string GenerateJWT(string username, string role) 
         {
             var key = _configuration.GetValue<string>("ApiSettings:Secret");
             var securedKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
             var securityCredentials = new SigningCredentials(securedKey, SecurityAlgorithms.HmacSha256);
 
             var claims = new List<Claim>
-{
-    new Claim(JwtRegisteredClaimNames.Sub, username),
-    new Claim(ClaimTypes.Role, role),
-    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-};
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, username),
+                new Claim(ClaimTypes.Role, role),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
 
             var token = new JwtSecurityToken(
                 issuer: "Satwika.com",

@@ -4,8 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using Hospital;
 using System;
 using System.Collections.Generic;
+using Hospital.Notification;
 
-namespace WebMedicalHistoryApi.Controllers
+namespace HospitalAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -20,6 +21,7 @@ namespace WebMedicalHistoryApi.Controllers
         }
 
         [HttpPost("SaveNotification")]
+        [Authorize(Roles = "Admin, Staff")]
         public IActionResult SaveNotification(NotificationModel notification)
         {
             int result = _notificationLogic.SaveNotification(notification);
@@ -31,6 +33,7 @@ namespace WebMedicalHistoryApi.Controllers
         }
 
         [HttpGet("GetNotifications")]
+        [Authorize(Roles = "Admin, Staff")]
         public IActionResult GetNotifications()
         {
             var notifications = _notificationLogic.FillNotifications();
@@ -39,6 +42,7 @@ namespace WebMedicalHistoryApi.Controllers
         }
 
         [HttpPut("UpdateNotification")]
+        [Authorize(Roles = "Admin, Staff")]
         public IActionResult UpdateNotification(NotificationModel notification)
         {
             int result = _notificationLogic.UpdateNotification(notification);
@@ -50,6 +54,7 @@ namespace WebMedicalHistoryApi.Controllers
         }
 
         [HttpDelete("DeleteNotification/{id}")]
+        [Authorize(Roles = "Admin, Staff")]
         public IActionResult DeleteNotification(int id)
         {
             int result = _notificationLogic.DeleteNotification(id);
@@ -61,6 +66,7 @@ namespace WebMedicalHistoryApi.Controllers
         }
 
         [HttpPost("SendReminder")]
+        [Authorize(Roles = "Admin, Staff")]
         public IActionResult SendReminder(int patientID, string message)
         {
             int result = _notificationLogic.SendReminder(patientID, message);
@@ -72,6 +78,7 @@ namespace WebMedicalHistoryApi.Controllers
         }
 
         [HttpPost("NotifyAppointmentChange")]
+        [Authorize(Roles = "Admin, Staff")]
         public IActionResult NotifyAppointmentChange(int patientID, string message)
         {
             int result = _notificationLogic.NotifyAppointmentChange(patientID, message);

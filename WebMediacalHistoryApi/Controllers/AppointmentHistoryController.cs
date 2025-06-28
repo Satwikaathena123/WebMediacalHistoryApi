@@ -1,33 +1,33 @@
-﻿using Hospital;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Data; // Add this line
+using Hospital;
+using System.Data;
+using Microsoft.AspNetCore.Authorization;
+using Hospital.Appointment;
 
-namespace WebMediacalHistoryApi.Controllers
+namespace HospitalAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class AppointmentHistoryController : ControllerBase
+    public class AppointmentController : ControllerBase
     {
-        private readonly BLLAppointments _bLLAppointments;
+        private readonly BLLAppointment _bllAppointments;
         private int id;
 
         // Constructor to initialize BLLCustomer
-        public AppointmentHistoryController()
+        public AppointmentController()
         {
-            _bLLAppointments = new BLLAppointments();
+            _bllAppointments = new BLLAppointment();
         }
-
         [HttpGet]
-        [Authorize(Roles = "Staff")]
-        public ActionResult<IEnumerable<AppointmentHistory>> GetAppointments()
+        [Authorize(Roles = "Patient, Admin")]
+        public async Task<ActionResult<IEnumerable<AppointmentHistory>>> GetAppointments()
         {
             try
             {
                 // Fetch appointment data from BLLCustomer
-                DataTable dataTable = _bLLAppointments.FillAppointments();
+                DataTable dataTable = await Task.Run(() => _bllAppointments.spFillAppointments());
 
                 // Check if data is empty
                 if (dataTable == null || dataTable.Rows.Count == 0)
@@ -36,7 +36,7 @@ namespace WebMediacalHistoryApi.Controllers
                 }
 
                 // Convert DataTable to a List of AppointmentHistory objects
-                List<AppointmentHistory> appointmentsList = _bLLAppointments.AppointmentConvertDataTableToList(dataTable);
+                List<AppointmentHistory> appointmentsList = _bllAppointments.AppointmentConvertDataTableToList(dataTable);
 
                 // Return the list of appointments as JSON
                 return Ok(appointmentsList);
@@ -47,15 +47,14 @@ namespace WebMediacalHistoryApi.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-
-        [HttpGet("{AppointmentID}")]
-        [Authorize(Roles = "Staff")]
-        public ActionResult<AppointmentHistory> GetAppointmentById(int AppointmentID)
+        [HttpGet("{appointmentid}")]
+        [Authorize(Roles = "Patient, Admin")]
+        public async Task<ActionResult<AppointmentHistory>> GetAppointmentById(int appointmentid)
         {
             try
             {
                 // Fetch all appointments and filter by AppointmentID
-                DataTable dataTable = _bLLAppointments.FillAppointments();
+                DataTable dataTable = await Task.Run(() => _bllAppointments.spFetchAppointmentsData(appointmentid));
 
                 if (dataTable == null || dataTable.Rows.Count == 0)
                 {
@@ -63,18 +62,18 @@ namespace WebMediacalHistoryApi.Controllers
                 }
 
                 // Convert DataTable to a list of AppointmentHistory objects
-                var appointmentsList = _bLLAppointments.AppointmentConvertDataTableToList(dataTable);
+                var appointmentsList = _bllAppointments.AppointmentConvertDataTableToList(dataTable);
 
                 // Find the appointment with the specified ID
-                var appointment = appointmentsList.Find(a => a.AppointmentID == AppointmentID);
 
-                if (appointment == null)
+
+                if (appointmentsList == null)
                 {
-                    return NotFound($"Appointment with ID {AppointmentID} not found.");
+                    return NotFound($"Appointment with ID {appointmentid} not found.");
                 }
 
                 // Return the appointment details
-                return Ok(appointment);
+                return Ok(appointmentsList);
             }
             catch (Exception ex)
             {
@@ -82,15 +81,14 @@ namespace WebMediacalHistoryApi.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-
         [HttpPost]
-        [Authorize(Roles = "Staff")]
-        public ActionResult CreateAppointment([FromBody] AppointmentHistory newAppointment)
+        [Authorize(Roles = "Patient, Admin")]
+        public async Task<ActionResult> CreateAppointment([FromBody] AppointmentHistory newAppointment)
         {
             try
             {
                 // Call the BLL method to save the new appointment
-                int result = _bLLAppointments.SaveAppointment(newAppointment);
+                int result = await Task.Run(() => _bllAppointments.spSaveAppointment(newAppointment));
 
                 if (result > 0)
                 {
@@ -107,11 +105,10 @@ namespace WebMediacalHistoryApi.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-
         // PUT: api/Appointments/{id}
         [HttpPut("{id}")]
-        [Authorize(Roles = "Staff")]
-        public ActionResult UpdateAppointment(int id, [FromBody] AppointmentHistory updatedAppointment)
+        [Authorize(Roles = "Patient, Admin")]
+        public async Task<ActionResult> UpdateAppointment(int id, [FromBody] AppointmentHistory updatedAppointment)
         {
             try
             {
@@ -119,7 +116,7 @@ namespace WebMediacalHistoryApi.Controllers
                 updatedAppointment.AppointmentID = id;
 
                 // Call the BLL method to update the appointment
-                int result = _bLLAppointments.UpdateAppointment(updatedAppointment);
+                int result = await Task.Run(() => _bllAppointments.UpdateAppointment(updatedAppointment));
 
                 if (result > 0)
                 {
@@ -136,31 +133,53 @@ namespace WebMediacalHistoryApi.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-
         [HttpDelete("{appointmentID}")]
-        [Authorize(Roles = "Staff")]
-        public ActionResult DeleteAppointment(int appointmentID, [FromBody] AppointmentHistory updatedHistory)
+        [Authorize(Roles = "Patient, Admin")]
+
+        public async Task<ActionResult> DeleteAppointment(int appointmentID, [FromBody] AppointmentHistory updatedHistory)
+
         {
+
             try
+
             {
+
                 // Call the BLL method to delete the appointment
+
                 updatedHistory.AppointmentID = appointmentID;
-                int result = _bLLAppointments.DeleteAppointment(updatedHistory);
+
+                int result = await Task.Run(() => _bllAppointments.spDeleteAppointment(updatedHistory));
 
                 if (result > 0)
+
                 {
+
                     return Ok("Appointment deleted successfully.");
+
                 }
+
                 else
+
                 {
+
                     return NotFound($"Appointment with ID {updatedHistory.AppointmentID} not found.");
+
                 }
+
             }
+
             catch (Exception ex)
+
             {
+
                 // Handle exceptions and return a 500 Internal Server Error
+
                 return StatusCode(500, $"Internal server error: {ex.Message}");
+
             }
+
         }
+
+
     }
 }

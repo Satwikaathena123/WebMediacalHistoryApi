@@ -1,11 +1,12 @@
 ﻿using Hospital;
+using Hospital.Medical_History;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Data;
 
-namespace WebMediacalHistoryApi.Controllers
+namespace HospitalAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -20,63 +21,35 @@ namespace WebMediacalHistoryApi.Controllers
         }
 
         //[HttpGet]
-        //public ActionResult<IEnumerable<PatientHistory>> GetHistoryEntries()
+        //public ActionResult<IEnumerable<MedicalHistory>> GetHistoryEntries()
         //{
         //    //Converter conv = new();
         //    DataTable dt = _bllhistory.FetchPatientsData();
-        //    var patientList = _bllhistory.ConvertDataTableToList(dt);
+        //    var patientList = _bllhistory.HistoryConvertDataTableToList(dt);
         //    return Ok(patientList);
         //}
 
         [HttpGet]
-        [Authorize(Roles = "Doctor, Patient")]
+        [Authorize(Roles = "Patient")]
         public ActionResult<IEnumerable<MedicalHistory>> GetActiveHistoryEntries()
         {
-            try
-            {
-                DataTable dt = _bllhistory.FetchActivePatientsData();
-                if (dt == null || dt.Rows.Count == 0)
-                {
-                    return NotFound("No History found in the database.");
-                }
-                var patientList = _bllhistory.HistoryConvertDataTableToList(dt);
-                return Ok(patientList);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
+            //Converter conv = new();
+            DataTable dt = _bllhistory.spFetchActivePatientsData();
+            var patientList = _bllhistory.HistoryConvertDataTableToList(dt);
+            return Ok(patientList);
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Doctor, Patient")]
+        [Authorize(Roles = "Patient")]
         public ActionResult<IEnumerable<MedicalHistory>> GetSelectedHistoryEntries(int id)
-        {   
-            try
-            {
-                DataTable dt = _bllhistory.FetechSingleTable(id);
-                
-                if(dt == null || dt.Rows.Count == 0)
-                {
-                    return NotFound("No History Found.");
-                }
-                var patientList = _bllhistory.HistoryConvertDataTableToList(dt);
-                
-                if (patientList == null)
-                {
-                    return NotFound($"History with ID {id} not found.");
-                }
-                return Ok(patientList);
-            }
-            catch(Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-           
+        {
+            DataTable dt = _bllhistory.spFetechSingleTable(id);
+            var patientList = _bllhistory.HistoryConvertDataTableToList(dt);
+            return Ok(patientList);
         }
 
         [HttpPost]
-        [Authorize(Roles = "Doctor, Patient")]
+        [Authorize(Roles = "Patient")]
         public ActionResult PutHistoryEntries([FromBody] MedicalHistory patientHistory)
         {
             try
@@ -86,10 +59,6 @@ namespace WebMediacalHistoryApi.Controllers
                 if (result == 0)
                 {
                     return StatusCode(500, $"Updated Successfully");
-                }
-                else
-                {
-                    return BadRequest("Failed to create History.");
                 }
             }
             catch (Exception ex)
@@ -101,21 +70,21 @@ namespace WebMediacalHistoryApi.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Doctor, Patient")]
-        public ActionResult UpdateHistoryEntries(int id, [FromBody]MedicalHistory updatedHistory)
+        [Authorize(Roles = "Patient")]
+        public ActionResult UpdateHistoryEntries(int id, [FromBody] MedicalHistory updatedHistory)
         {
             try
             {
                 updatedHistory.HistoryID = id;
-                int result = _bllhistory.UpdatePatient(updatedHistory);
+                int result = _bllhistory.spUpdatePatient(updatedHistory);
 
-                if (result >0)
+                if (result > 0)
                 {
-                    return Ok("Updated Successfully.");
+                    return Ok("Updated");
                 }
                 else
                 {
-                    return NotFound($"History with ID {id} not found.");
+                    return NotFound();
                 }
             }
             catch (Exception ex)
@@ -125,21 +94,21 @@ namespace WebMediacalHistoryApi.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Doctor, Patient")]
+        [Authorize(Roles = "Patient")]
         public ActionResult DeleteHistory(int id, [FromBody] MedicalHistory updatedHistory)
         {
             try
             {
                 updatedHistory.HistoryID = id;
-                int result = _bllhistory.DeletePatientHistory(updatedHistory);
+                int result = _bllhistory.spDeletePatientHistory(updatedHistory);
 
                 if (result > 0)
                 {
-                    return Ok("Deleted Successfully.");
+                    return Ok("Deleted");
                 }
                 else
                 {
-                    return NotFound($"History with ID {id} not found.");
+                    return NotFound();
                 }
             }
             catch (Exception ex)
@@ -147,5 +116,7 @@ namespace WebMediacalHistoryApi.Controllers
                 return StatusCode(500, $"Internal Server Error: {ex.Message}");
             }
         }
+
+
     }
 }
